@@ -5,6 +5,9 @@ services:
   auctionDb:
     image: postgres
 
+  mongoDb:
+    image: mongo
+
   auctionservice:
     image: ${DOCKER_REGISTRY-}auctionservice
     build:
@@ -14,3 +17,4 @@ services:
 
 volumes:
   postgres_auction:
+  mongo_data:
