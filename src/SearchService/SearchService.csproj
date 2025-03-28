@@ -7,6 +7,7 @@
     <UserSecretsId>ff71a2cd-20bb-4826-82bb-5f3678b2a073</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>..\..</DockerfileContext>
+    <DockerComposeProjectPath>..\..\docker-compose.dcproj</DockerComposeProjectPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,13 +20,14 @@
 
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="14.0.0" />
+    <PackageReference Include="MassTransit.RabbitMQ" Version="8.4.0" />
+    <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="8.0.14" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
     <PackageReference Include="MongoDB.Entities" Version="24.1.1" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Consumers\" />
-    <Folder Include="Services\" />
   </ItemGroup>
 
   <ProjectExtensions><VisualStudio><UserProperties data_4auctions_1json__JsonSchema="https://alec016.github.io/Custom-Machinery/Json%20Schema/src/main/resources/schemas/custom_machinery_machine.json" /></VisualStudio></ProjectExtensions>

@@ -18,9 +18,8 @@ services:
   mongoDb:
     container_name: mongoDb
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=admin123
-      - MONGO_INITDB_DATABASE=admin
+      MONGO_INITDB_ROOT_USERNAME: mongoadmin
+      MONGO_INITDB_ROOT_PASSWORD: mongopassword
     restart: always
     ports:
       - "27017:27017"
@@ -33,7 +32,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_HTTPS_PORTS=8081
-      - ConnectionStrings__DefaultConnection=Server=auctionDb;Database=CatalogDb;User Id=postgres;Password=postgres;Include Error Detail=true
+      - ConnectionStrings__DefaultConnection=Server=auctionDb;Database=AuctionDb;User Id=postgres;Password=postgres;Include Error Detail=true
     depends_on: 
       - auctionDb 
     ports:
@@ -42,3 +41,5 @@ services:
     volumes:
       - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
       - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+
+  

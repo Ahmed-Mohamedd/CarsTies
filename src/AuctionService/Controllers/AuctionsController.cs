@@ -29,7 +29,7 @@ namespace AuctionService.Controllers
             return Ok(auction);
         }
 
-        [Authorize]
+        
         [HttpPost]
         public async Task<ActionResult<AuctionDto>> CreateAuction(CreateAuctionDto createAuctionDto)
         {
