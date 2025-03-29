@@ -31,8 +31,9 @@ namespace SearchService.Services
 
         public async Task SetCachedDataAsync(List<Item> items)
         {
-            string jsonData = JsonSerializer.Serialize(items);
-            await _db.StringSetAsync("items", jsonData, TimeSpan.FromMinutes(30));
+            var options = new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+            string jsonData = JsonSerializer.Serialize(items , options);
+            await _db.StringSetAsync("items", jsonData, TimeSpan.FromDays(30));
         }
     }
 

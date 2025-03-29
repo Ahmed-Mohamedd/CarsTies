@@ -4,6 +4,7 @@ using AuctionService.Models;
 using AutoMapper;
 using Contracts;
 using MassTransit;
+using MassTransit.Transports;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -41,16 +42,16 @@ namespace AuctionService.Controllers
 
             await repo.AddAuction(auction);
 
-            var result = await repo.SaveChangesAsync();
-            if (result)
-            {
-                var newAuction = mapper.Map<AuctionDto>(auction);
-                await _publishEndpoint.Publish(mapper.Map<AuctionCreated>(newAuction)); // publish the newly created auction to queue
+            var newAuction = mapper.Map<AuctionDto>(auction);
 
-                return CreatedAtAction(nameof(GetAuctionById),
-                    new { Id = auction.Id }, newAuction);
-            }
-            return BadRequest("Could not save changes to DB");
+            await _publishEndpoint.Publish(mapper.Map<AuctionCreated>(newAuction));
+
+            var result = await repo.SaveChangesAsync();
+
+            if (!result) return BadRequest("Could not save changes to DB");
+
+            return CreatedAtAction(nameof(GetAuctionById),
+                new { Id = auction.Id }, newAuction);
 
         }
 
