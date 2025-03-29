@@ -5,8 +5,11 @@ services:
   auctionDb:
     image: postgres
 
-  mongoDb:
-    image: mongo
+  distributedcache:
+    image: redis
+
+  messagebroker:
+    image: rabbitmq:management
 
   auctionservice:
     image: ${DOCKER_REGISTRY-}auctionservice
@@ -16,7 +19,13 @@ services:
 
 
  
+  searchservice:
+    image: ${DOCKER_REGISTRY-}searchservice
+    build:
+      context: .
+      dockerfile: src/SearchService/Dockerfile
+
 volumes:
   postgres_auction:
-  mongo_data:
+
 

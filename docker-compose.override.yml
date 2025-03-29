@@ -14,17 +14,22 @@ services:
     volumes:
       - postgres_auction:/var/lib/postgresql/data/
  
-  
-  mongoDb:
-    container_name: mongoDb
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: mongoadmin
-      MONGO_INITDB_ROOT_PASSWORD: mongopassword
+  distributedcache:
+    container_name: distributedcache
     restart: always
     ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
+      - "6379:6379"
+
+  messagebroker:
+    container_name: messagebroker
+    hostname: carsties-mq
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
 
 
   auctionservice:
@@ -43,3 +48,23 @@ services:
       - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
 
   
+  searchservice:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTPS_PORTS=8081
+      - ConnectionStrings__Redis=distributedcache:6379 
+      - MessageBroker__Host=amqp://carsties-mq:5672
+      - MessageBroker__UserName=guest
+      - MessageBroker__Password=guest
+    depends_on:
+      - distributedcache
+      - messagebroker 
+    ports:
+      - "8080"
+      - "8081"
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+      - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro

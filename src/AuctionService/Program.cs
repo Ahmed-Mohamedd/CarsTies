@@ -1,4 +1,5 @@
 using AuctionService.Data;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +16,15 @@ builder.Services.AddDbContext<AuctionDbContext>(options =>
 
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 builder.Services.AddScoped<IAuctionRepository, AuctionRepository>();
+
+builder.Services.AddMassTransit(x =>
+{
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        //cfg.Host("rabbitmq://localhost");
+        cfg.ConfigureEndpoints(context);
+    });
+});
 
 var app = builder.Build();
 

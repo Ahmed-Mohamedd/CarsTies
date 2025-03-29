@@ -1,66 +1,93 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using System.Reflection;
+using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Caching.Distributed;
 using MongoDB.Entities;
 using SearchService.Models;
 using SearchService.RequestHelpers;
+using SearchService.Services;
 
 namespace SearchService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class SearchController : ControllerBase
+    public class SearchController(RedisService _redisService , ILogger<SearchController> _logger) : ControllerBase
     {
         [HttpGet]
-        public async Task<ActionResult<List<Item>>> SearchItems([FromQuery] SearchParams searchParams)
+        public async Task<ActionResult<List<Item>>> SearchItems([FromQuery] SearchParams searchParams )
         {
-            var query = DB.PagedSearch<Item, Item>();
-
-            if (!string.IsNullOrEmpty(searchParams.SearchTerm))
+            try
             {
-                query.Match(Search.Full, searchParams.SearchTerm).SortByTextScore();
-            }
+                if (searchParams.PageNumber < 1) searchParams.PageNumber = 1;
+                if (searchParams.PageSize < 1) searchParams.PageSize = 4;
 
-            query = searchParams.OrderBy switch
-            {
-                "make" => query.Sort(x => x.Ascending(x => x.Make))
-                    .Sort(x => x.Ascending(a => a.Model)),
-                "new" => query.Sort(x => x.Descending(x => x.CreatedAt)),
-                _ => query.Sort(x => x.Ascending(x => x.AuctionEnd))
-            };
+                var items = await _redisService.GetCachedDataAsync();
 
-            if (!string.IsNullOrEmpty(searchParams.FilterBy))
-            {
-                query = searchParams.FilterBy switch
+                // Apply filtering
+                var filteredItems = items.AsQueryable();
+
+                if (!string.IsNullOrEmpty(searchParams.Seller))
+                    filteredItems = filteredItems.Where(i => i.Seller == searchParams.Seller);
+
+                if (!string.IsNullOrEmpty(searchParams.Winner))
+                    filteredItems = filteredItems.Where(i => i.Winner == searchParams.Winner);
+
+                if (!string.IsNullOrEmpty(searchParams.OrderBy))
                 {
-                    "finished" => query.Match(x => x.AuctionEnd < DateTime.UtcNow),
-                    "endingSoon" => query.Match(x =>
-                        x.AuctionEnd < DateTime.UtcNow.AddHours(6)
-                            && x.AuctionEnd > DateTime.UtcNow),
-                    _ => query.Match(x => x.AuctionEnd > DateTime.UtcNow) // live
-                };
+                    filteredItems = searchParams.OrderBy switch
+                    {
+                       "make" => filteredItems.OrderByDescending(x =>  x.Make)
+                                              .OrderBy(x => x.Model),
+                        "new" => filteredItems.OrderByDescending(x => x.CreatedAt),
+                       _ => filteredItems.OrderByDescending(x => x.AuctionEnd)
+                    };
+                }
+                
+
+                if (!string.IsNullOrEmpty(searchParams.FilterBy))
+                {
+
+                    filteredItems = searchParams.FilterBy switch
+                    {
+                        "finished" => filteredItems.Where(x => x.AuctionEnd < DateTime.UtcNow),
+                        "endingSoon" => filteredItems.Where(x => x.AuctionEnd < DateTime.UtcNow.AddHours(6) && x.AuctionEnd > DateTime.UtcNow),
+                        _ => filteredItems.Where(x => x.AuctionEnd > DateTime.UtcNow) // live
+                    };
+                }
+                    
+
+                
+
+                // Total items count after filtering
+                int totalCount = filteredItems.Count();
+
+                // Apply Pagination
+                var pagedItems = filteredItems
+                    .Skip((searchParams.PageNumber - 1) * searchParams.PageSize)
+                    .Take(searchParams.PageSize)
+                    .ToList();
+
+                // Calculate Page Count
+                int pageCount = (int)Math.Ceiling((double)totalCount / searchParams.PageSize);
+
+                return Ok(new
+                {
+                    Data = pagedItems,
+                    TotalCount = totalCount,
+                    PageCount = pageCount,
+                    PageNumber = searchParams.PageNumber,
+                    PageSize = searchParams.PageSize
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing search query.");
+                return StatusCode(500, "An error occurred while processing your request.");
             }
 
-            if (!string.IsNullOrEmpty(searchParams.Seller))
-            {
-                query.Match(x => x.Seller == searchParams.Seller);
-            }
-
-            if (!string.IsNullOrEmpty(searchParams.Winner))
-            {
-                query.Match(x => x.Winner == searchParams.Winner);
-            }
-
-            query.PageNumber(searchParams.PageNumber);
-            query.PageSize(searchParams.PageSize);
-
-            var result = await query.ExecuteAsync();
-
-            return Ok(new
-            {
-                results = result.Results,
-                pageCount = result.PageCount,
-                totalCount = result.TotalCount
-            });
+           
         }
     }
 }

@@ -2,7 +2,7 @@
 
 namespace SearchService.Models
 {
-    public class Item:Entity
+    public class Item
     {
         public int ReservePrice { get; set; }
         public required string Seller { get; set; }
