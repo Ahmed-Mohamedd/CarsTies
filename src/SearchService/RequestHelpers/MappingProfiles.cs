@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using Contracts;
+using SearchService.Models;
 
 namespace SearchService.RequestHelpers
 {
@@ -6,7 +8,7 @@ namespace SearchService.RequestHelpers
     {
         public MappingProfiles()
         {
-            //CreateMap<AuctionCreated, Item>();
+            CreateMap<AuctionCreated, Item>();
             //CreateMap<AuctionUpdated, Item>();
         }
     }

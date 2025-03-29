@@ -2,6 +2,8 @@
 using AuctionService.DTOs;
 using AuctionService.Models;
 using AutoMapper;
+using Contracts;
+using MassTransit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +12,7 @@ namespace AuctionService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AuctionsController(IAuctionRepository repo, IMapper mapper) 
+    public class AuctionsController(IAuctionRepository repo, IMapper mapper , IPublishEndpoint _publishEndpoint) 
         : ControllerBase
     {
         [HttpGet]
@@ -37,18 +39,19 @@ namespace AuctionService.Controllers
 
             auction.Seller = User.Identity?.Name ?? "Unknown user";
 
-            repo.AddAuction(auction);
-
-            var newAuction = mapper.Map<AuctionDto>(auction);
-
-            //await publishEndpoint.Publish(mapper.Map<AuctionCreated>(newAuction));
+            await repo.AddAuction(auction);
 
             var result = await repo.SaveChangesAsync();
+            if (result)
+            {
+                var newAuction = mapper.Map<AuctionDto>(auction);
+                await _publishEndpoint.Publish(mapper.Map<AuctionCreated>(newAuction)); // publish the newly created auction to queue
 
-            if (!result) return BadRequest("Could not save changes to DB");
+                return CreatedAtAction(nameof(GetAuctionById),
+                    new { Id = auction.Id }, newAuction);
+            }
+            return BadRequest("Could not save changes to DB");
 
-            return CreatedAtAction(nameof(GetAuctionById),
-                new { Id = auction.Id }, newAuction);
         }
 
         [Authorize]
@@ -67,7 +70,7 @@ namespace AuctionService.Controllers
             auction.Item.Mileage = updateAuctionDto.Mileage ?? auction.Item.Mileage;
             auction.Item.Year = updateAuctionDto.Year ?? auction.Item.Year;
 
-            //await publishEndpoint.Publish(mapper.Map<AuctionUpdated>(auction));
+            //await _publishEndpoint.Publish(mapper.Map<AuctionUpdated>(auction));
 
             var result = await repo.SaveChangesAsync();
 
